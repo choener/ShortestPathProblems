@@ -11,7 +11,7 @@ Stability:      Experimental
 Category:       Data
 Build-type:     Simple
 Cabal-version:  >=1.10.0
-tested-with:    GHC == 7.8.4, GHC == 7.10.3
+tested-with:    GHC == 7.8.4, GHC == 7.10.3, GHC == 8.0.1
 Synopsis:       grammars for TSP and SHP
 Description:
                 Grammars for the shortest Hamiltonian path and Travelling
@@ -29,8 +29,10 @@ extra-source-files:
 Library
   Exposed-modules:
     ShortestPath.SHP
-  build-depends: base                     >= 4.7    &&  < 5.0
-               , vector                   >= 0.10
+  build-depends: base           >= 4.7    &&  < 5.0
+               , vector         >= 0.10
+               --
+               , ADPfusionSet   == 0.0.0.*
   default-extensions: BangPatterns
                     , ScopedTypeVariables
                     , FlexibleContexts
@@ -56,12 +58,13 @@ test-suite properties
   default-extensions: CPP
                     , TemplateHaskell
   build-depends: base
-               , ShortestPathProblems
                , QuickCheck
-               , tasty              >= 0.11
-               , tasty-quickcheck   >= 0.8
-               , tasty-th           >= 0.1
+               , tasty                >= 0.11
+               , tasty-quickcheck     >= 0.8
+               , tasty-th             >= 0.1
                , vector
+               --
+               , ShortestPathProblems
 
 
 

@@ -1,0 +1,7 @@
+packages: .
+          ../Lib-ADPfusion
+          ../Lib-ADPfusionSet
+          ../Lib-DPutils
+          ../Lib-OrderedBits
+          ../Lib-PrimitiveArray
+
