@@ -28,14 +28,21 @@ extra-source-files:
 
 Library
   Exposed-modules:
-    ShortestPath.SHP
-  build-depends: base           >= 4.7    &&  < 5.0
-               , vector         >= 0.10
+    ShortestPath.SHP.EdgeProb
+    ShortestPath.SHP.MinDist
+  build-depends: base             >= 4.7    &&  < 5.0
+               , vector           >= 0.10
                --
-               , ADPfusionSet   == 0.0.0.*
+               , ADPfusion        == 0.5.2.*
+               , ADPfusionSet     == 0.0.0.*
+               , FormalGrammars   == 0.3.1.*
   default-extensions: BangPatterns
-                    , ScopedTypeVariables
                     , FlexibleContexts
+                    , MultiParamTypeClasses
+                    , QuasiQuotes
+                    , ScopedTypeVariables
+                    , TemplateHaskell
+                    , TypeFamilies
   default-language:
     Haskell2010
   ghc-options:
