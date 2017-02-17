@@ -29,6 +29,7 @@ extra-source-files:
 Library
   Exposed-modules:
     ShortestPath.SHP.EdgeProb
+    ShortestPath.SHP.EdgeProbIO
     ShortestPath.SHP.MinDist
   build-depends: base             >= 4.7    &&  < 5.0
                , vector           >= 0.10
