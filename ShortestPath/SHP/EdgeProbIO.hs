@@ -24,7 +24,7 @@ L -> mpty <<< ε       -- full set
 L -> node <<< L s     -- single node missing
 L -> edge <<< L k     -- edge k removed
 -- combine inside and outside
-Z -> fini <<< L k F   -- edges bracketed by a Last and a First set
+Z -> fini <<< F k L   -- edges bracketed by a Last and a First set
 //
 Emit: EdgeProb
 |]
