@@ -38,8 +38,9 @@ aMinDist :: Monad m => ScoreMatrix Double -> SigMinDist m Double Double (From:.T
 aMinDist s = SigMinDist
   { edge = \x (From f:.To t) ->
       let z = s .!. (f,t)
-      in traceShow (x,f,t,z) $
+      in
 #ifdef ADPFUSION_DEBUGOUTPUT
+         traceShow (x,f,t,z) $
 #endif
          x + z
   , mpty = \() ->
@@ -143,11 +144,9 @@ backtrackMinDist1 scoreMat (Z:.ts1:.u) = unId $ axiom b
 -- from all @forwardMinDist1@ paths?
 
 runCoOptDist :: ScoreMatrix Double -> (Double,[Text])
-runCoOptDist scoreMat = traceShow (fwd1',fwdu') $ (unId $ axiom fwdu,bs)
+runCoOptDist scoreMat = (unId $ axiom fwdu,bs)
   where !(Z:.fwd1:.fwdu) = forwardMinDist1 scoreMat
         bs = backtrackMinDist1 scoreMat (Z:.fwd1:.fwdu)
-        TW (ITbl _ _ _ fwd1') _ = fwd1
-        TW (ITbl _ _ _ fwdu') _ = fwdu
 {-# NoInline runCoOptDist #-}
 
 -- | Extract the individual partition scores.
