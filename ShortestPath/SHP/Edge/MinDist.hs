@@ -36,9 +36,22 @@ import           ShortestPath.SHP.Grammar.MinDist
 
 aMinDist :: Monad m => ScoreMatrix Double -> SigMinDist m Double Double (From:.To) (Int:.To)
 aMinDist s = SigMinDist
-  { edge = \x (From f:.To t) -> let z = s .!. (f,t) in traceShow (x,f,t,z) $ x + z
-  , mpty = \() -> 0
-  , node = \n -> 0
+  { edge = \x (From f:.To t) ->
+      let z = s .!. (f,t)
+      in traceShow (x,f,t,z) $
+#ifdef ADPFUSION_DEBUGOUTPUT
+#endif
+         x + z
+  , mpty = \() ->
+#ifdef ADPFUSION_DEBUGOUTPUT
+      traceShow "empty" $
+#endif
+      0
+  , node = \n ->
+#ifdef ADPFUSION_DEBUGOUTPUT
+      traceShow ("node",n) $
+#endif
+      0
   , fini = id
   , h    = SM.foldl' min 999999
   }

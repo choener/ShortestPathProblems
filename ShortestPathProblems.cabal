@@ -26,6 +26,18 @@ extra-source-files:
 
 
 
+flag debug
+  description:  Enable bounds checking and various other debug operations at the cost of a significant performance penalty.
+  default:      False
+  manual:       True
+
+flag debugoutput
+  description:  Enable debug output, which spams the screen full of index information
+  default:      False
+  manual:       True
+
+
+
 Library
   Exposed-modules:
     -- here are just the grammars
@@ -46,6 +58,7 @@ Library
                , FormalGrammars   == 0.3.1.*
                , PrimitiveArray   == 0.8.0.*
   default-extensions: BangPatterns
+                    , CPP
                     , FlexibleContexts
                     , MultiParamTypeClasses
                     , QuasiQuotes
@@ -58,6 +71,12 @@ Library
   ghc-options:
     -O2
     -funbox-strict-fields
+  if flag(debug)
+    cpp-options: -DADPFUSION_CHECKS
+    ghc-options: -fno-ignore-asserts
+  if flag(debugoutput)
+    cpp-options: -DADPFUSION_DEBUGOUTPUT
+
 
 
 
