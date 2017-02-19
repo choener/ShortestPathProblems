@@ -1,5 +1,5 @@
 
-module ShortestPath.SHP.EdgeProbIO where
+module ShortestPath.SHP.Grammar.EdgeProbIO where
 
 import ADP.Fusion.Core
 import FormalLanguage

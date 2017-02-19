@@ -1,5 +1,5 @@
 
-module ShortestPath.SHP.MinDist where
+module ShortestPath.SHP.Grammar.MinDist where
 
 import ADP.Fusion.Core
 import FormalLanguage
