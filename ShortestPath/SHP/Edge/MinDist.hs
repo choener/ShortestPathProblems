@@ -65,17 +65,34 @@ aMaxEdgeProb :: Monad m => ScoreMatrix (Log Double) -> SigMinDist m (Log Double)
 aMaxEdgeProb s = SigMinDist
   { edge = \x (From f:.To t) -> x * (s .!. (f,t))
   , mpty = \() -> 1
-  , node = \n -> 1
+  , node = \(_:.To n) -> let z = s `nodeDist` n in z
   , fini = id
   , h    = SM.foldl' max 0
   }
 {-# Inline aMaxEdgeProb #-}
 
+data PathBT
+  = BTnode !(Int:.To)
+  | BTedge !(From:.To)
+  deriving (Show)
+
 -- | This should give the correct order of nodes independent of the
 -- underlying @Set1 First@ or @Set1 Last@ because the @(From:.To)@ system
 -- is agnostic over these.
---
--- TODO Use text builder
+
+aPathBT :: Monad m => ScoreMatrix t -> SigMinDist m [PathBT] [[PathBT]] (From:.To) (Int:.To)
+aPathBT s = SigMinDist
+  { edge = \x e -> BTedge e : x
+  , mpty = \()  -> []
+  , node = \n   -> [BTnode n]
+  , fini = id
+  , h    = SM.toList
+  }
+{-# Inline aPathBT #-}
+
+-- | This should give the correct order of nodes independent of the
+-- underlying @Set1 First@ or @Set1 Last@ because the @(From:.To)@ system
+-- is agnostic over these.
 
 aPretty :: Monad m => ScoreMatrix t -> SigMinDist m Text [Text] (From:.To) (Int:.To)
 aPretty s = SigMinDist
@@ -137,6 +154,16 @@ backtrackMinDist1 scoreMat (Z:.ts1:.u) = unId $ axiom b
                         :: Z:.BT1 Double Text:.BTU Double Text
 {-# NoInline backtrackMinDist1 #-}
 
+pathbtMinDist :: ScoreMatrix Double -> Z:.TS1 Double:.U Double -> [[PathBT]]
+pathbtMinDist scoreMat (Z:.ts1:.u) = unId $ axiom b
+  where !(Z:.bt1:.b) = gMinDist (aMinDist scoreMat <|| aPathBT scoreMat)
+                            (toBacktrack ts1 (undefined :: Id a -> Id a))
+                            (toBacktrack u   (undefined :: Id a -> Id a))
+                            Edge
+                            Singleton
+                        :: Z:.BT1 Double [PathBT]:.BTU Double [PathBT]
+{-# NoInline pathbtMinDist #-}
+
 -- | Given the @Set1@ produced in @forwardMinDist1@ we can now extract the
 -- co-optimal paths using the @Set1 -> ()@ index change.
 --
@@ -148,6 +175,15 @@ runCoOptDist scoreMat = (unId $ axiom fwdu,bs)
   where !(Z:.fwd1:.fwdu) = forwardMinDist1 scoreMat
         bs = backtrackMinDist1 scoreMat (Z:.fwd1:.fwdu)
 {-# NoInline runCoOptDist #-}
+
+-- | Return the minimal distance and provide a list of co-optimal
+-- backtraces.
+
+runMinDist :: ScoreMatrix Double -> (Double,[[PathBT]])
+runMinDist scoreMat = (unId $ axiom fwdu,bs)
+  where !(Z:.fwd1:.fwdu) = forwardMinDist1 scoreMat
+        bs = pathbtMinDist scoreMat (Z:.fwd1:.fwdu)
+{-# NoInline runMinDist #-}
 
 -- | Extract the individual partition scores.
 
@@ -181,15 +217,15 @@ forwardMaxEdgeProb scoreMat =
         Singleton
 {-# NoInline forwardMaxEdgeProb #-}
 
-backtrackMaxEdgeProb :: ScoreMatrix (Log Double) -> Z:.TS1 (Log Double):.U (Log Double) -> [Text]
-backtrackMaxEdgeProb scoreMat (Z:.ts1:.u) = unId $ axiom b
-  where !(Z:.bt1:.b) = gMinDist (aMaxEdgeProb scoreMat <|| aPretty scoreMat)
+pathbtMaxEdgeProb :: ScoreMatrix (Log Double) -> Z:.TS1 (Log Double):.U (Log Double) -> [[PathBT]]
+pathbtMaxEdgeProb scoreMat (Z:.ts1:.u) = unId $ axiom b
+  where !(Z:.bt1:.b) = gMinDist (aMaxEdgeProb scoreMat <|| aPathBT scoreMat)
                             (toBacktrack ts1 (undefined :: Id a -> Id a))
                             (toBacktrack u   (undefined :: Id a -> Id a))
                             Edge
                             Singleton
-                        :: Z:.BT1 (Log Double) Text:.BTU (Log Double) Text
-{-# NoInline backtrackMaxEdgeProb #-}
+                        :: Z:.BT1 (Log Double) [PathBT]:.BTU (Log Double) [PathBT]
+{-# NoInline pathbtMaxEdgeProb #-}
 
 -- | Given the @Set1@ produced in @forwardMinDist1@ we can now extract the
 -- co-optimal paths using the @Set1 -> ()@ index change.
@@ -197,10 +233,10 @@ backtrackMaxEdgeProb scoreMat (Z:.ts1:.u) = unId $ axiom b
 -- TODO do we want this one explicitly or make life easy and just extract
 -- from all @forwardMinDist1@ paths?
 
-runMaxEdgeProb :: ScoreMatrix (Log Double) -> (Log Double,[Text])
+runMaxEdgeProb :: ScoreMatrix (Log Double) -> (Log Double,[[PathBT]])
 runMaxEdgeProb scoreMat = (unId $ axiom fwdu,bs)
   where !(Z:.fwd1:.fwdu) = forwardMaxEdgeProb scoreMat
-        bs = backtrackMaxEdgeProb scoreMat (Z:.fwd1:.fwdu)
+        bs = pathbtMaxEdgeProb scoreMat (Z:.fwd1:.fwdu)
 {-# NoInline runMaxEdgeProb #-}
 
 
@@ -213,6 +249,9 @@ test t fp = do
   mapM_ print $ bt
   print $ length bt
   print $ length $ nub $ sort bt
+  let (dmin,btmin) = runMinDist sMat
+  print dmin
+  mapM_ print $ btmin
   let ps = boundaryPartFun t sMat
   forM_ ps $ \(b,_) -> printf "%5s  " (sMat `rowNameOf` getBoundary b)
   putStrLn ""
