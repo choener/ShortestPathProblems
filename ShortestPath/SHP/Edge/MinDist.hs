@@ -124,8 +124,15 @@ type TS1 x = TwITbl Id Unboxed EmptyOk (BS1 First I)      x
 type U   x = TwITbl Id Unboxed EmptyOk (Unit I)           x
 type PF  x = TwITbl Id Unboxed EmptyOk (Boundary First I) x
 
+type TS1L x = TwITbl Id Unboxed EmptyOk (BS1 Last I)      x
+type UL   x = TwITbl Id Unboxed EmptyOk (Unit I)           x
+type PFL  x = TwITbl Id Unboxed EmptyOk (Boundary Last I) x
+
 type BT1 x b = TwITblBt Unboxed EmptyOk (BS1 First I) x Id Id b
 type BTU x b = TwITblBt Unboxed EmptyOk (Unit I)      x Id Id b
+
+type BT1L x b = TwITblBt Unboxed EmptyOk (BS1 Last I) x Id Id b
+type BTUL x b = TwITblBt Unboxed EmptyOk (Unit I)      x Id Id b
 
 
 
@@ -207,25 +214,45 @@ boundaryPartFun temperature scoreMat =
 
 -- | Run the maximal edge probability grammar.
 
-forwardMaxEdgeProb :: ScoreMatrix (Log Double) -> Z:.TS1 (Log Double):.U (Log Double)
-forwardMaxEdgeProb scoreMat =
+forwardMaxEdgeProbFirst :: ScoreMatrix (Log Double) -> Z:.TS1 (Log Double):.U (Log Double)
+forwardMaxEdgeProbFirst scoreMat =
   let n = numRows scoreMat
   in  mutateTablesST $ gMinDist (aMaxEdgeProb scoreMat)
         (ITbl 0 0 EmptyOk (fromAssocs (BS1 0 (-1)) (BS1 (2^n-1) (Boundary $ n-1)) 0 []))
         (ITbl 1 0 EmptyOk (fromAssocs Unit         Unit                           0 []))
         Edge
         Singleton
-{-# NoInline forwardMaxEdgeProb #-}
+{-# NoInline forwardMaxEdgeProbFirst #-}
 
-pathbtMaxEdgeProb :: ScoreMatrix (Log Double) -> Z:.TS1 (Log Double):.U (Log Double) -> [[PathBT]]
-pathbtMaxEdgeProb scoreMat (Z:.ts1:.u) = unId $ axiom b
+forwardMaxEdgeProbLast :: ScoreMatrix (Log Double) -> Z:.TS1L (Log Double):.UL (Log Double)
+forwardMaxEdgeProbLast scoreMat =
+  let n = numRows scoreMat
+  in  mutateTablesST $ gMinDist (aMaxEdgeProb scoreMat)
+        (ITbl 0 0 EmptyOk (fromAssocs (BS1 0 (-1)) (BS1 (2^n-1) (Boundary $ n-1)) 0 []))
+        (ITbl 1 0 EmptyOk (fromAssocs Unit         Unit                           0 []))
+        Edge
+        Singleton
+{-# NoInline forwardMaxEdgeProbLast #-}
+
+pathbtMaxEdgeProbFirst :: ScoreMatrix (Log Double) -> Z:.TS1 (Log Double):.U (Log Double) -> [[PathBT]]
+pathbtMaxEdgeProbFirst scoreMat (Z:.ts1:.u) = unId $ axiom b
   where !(Z:.bt1:.b) = gMinDist (aMaxEdgeProb scoreMat <|| aPathBT scoreMat)
                             (toBacktrack ts1 (undefined :: Id a -> Id a))
                             (toBacktrack u   (undefined :: Id a -> Id a))
                             Edge
                             Singleton
                         :: Z:.BT1 (Log Double) [PathBT]:.BTU (Log Double) [PathBT]
-{-# NoInline pathbtMaxEdgeProb #-}
+{-# NoInline pathbtMaxEdgeProbFirst #-}
+
+pathbtMaxEdgeProbLast :: ScoreMatrix (Log Double) -> Z:.TS1L (Log Double):.UL (Log Double) -> [[PathBT]]
+pathbtMaxEdgeProbLast scoreMat (Z:.ts1:.u) = unId $ axiom b
+  where !(Z:.bt1:.b) = gMinDist (aMaxEdgeProb scoreMat <|| aPathBT scoreMat)
+                            (toBacktrack ts1 (undefined :: Id a -> Id a))
+                            (toBacktrack u   (undefined :: Id a -> Id a))
+                            Edge
+                            Singleton
+                        :: Z:.BT1L (Log Double) [PathBT]:.BTUL (Log Double) [PathBT]
+{-# NoInline pathbtMaxEdgeProbLast #-}
 
 -- | Given the @Set1@ produced in @forwardMinDist1@ we can now extract the
 -- co-optimal paths using the @Set1 -> ()@ index change.
@@ -233,11 +260,22 @@ pathbtMaxEdgeProb scoreMat (Z:.ts1:.u) = unId $ axiom b
 -- TODO do we want this one explicitly or make life easy and just extract
 -- from all @forwardMinDist1@ paths?
 
-runMaxEdgeProb :: ScoreMatrix (Log Double) -> (Log Double,[[PathBT]])
-runMaxEdgeProb scoreMat = (unId $ axiom fwdu,bs)
-  where !(Z:.fwd1:.fwdu) = forwardMaxEdgeProb scoreMat
-        bs = pathbtMaxEdgeProb scoreMat (Z:.fwd1:.fwdu)
-{-# NoInline runMaxEdgeProb #-}
+runMaxEdgeProbFirst :: ScoreMatrix (Log Double) -> (Log Double,[[PathBT]])
+runMaxEdgeProbFirst scoreMat = (unId $ axiom fwdu,bs)
+  where !(Z:.fwd1:.fwdu) = forwardMaxEdgeProbFirst scoreMat
+        bs = pathbtMaxEdgeProbFirst scoreMat (Z:.fwd1:.fwdu)
+{-# NoInline runMaxEdgeProbFirst #-}
+
+-- as debug information, we give all end points in @fwd1@
+
+runMaxEdgeProbLast :: ScoreMatrix (Log Double) -> (Log Double,[(Boundary Last I, Log Double)],[[PathBT]])
+runMaxEdgeProbLast scoreMat = (unId $ axiom fwdu, endpoints , bs)
+  where !(Z:.fwd1:.fwdu) = forwardMaxEdgeProbLast scoreMat
+        bs = pathbtMaxEdgeProbLast scoreMat (Z:.fwd1:.fwdu)
+        (TW (ITbl _ _ _ fwd1') _) = fwd1
+        (_,BS1 bset (Boundary bb)) = bounds fwd1'
+        endpoints = [(Boundary k, fwd1' ! BS1 bset (Boundary k)) | k <- [0..bb] ]
+{-# NoInline runMaxEdgeProbLast #-}
 
 
 
